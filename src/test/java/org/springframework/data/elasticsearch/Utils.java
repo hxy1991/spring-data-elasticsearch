@@ -15,24 +15,45 @@
  */
 package org.springframework.data.elasticsearch;
 
-import static org.elasticsearch.node.NodeBuilder.*;
-
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.UUID;
 
-import org.elasticsearch.client.node.NodeClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.node.NodeValidationException;
+import org.elasticsearch.transport.Netty4Plugin;
+import org.springframework.data.elasticsearch.client.NodeClientFactoryBean;
 
 /**
  * @author Mohsin Husen
+ * @author Artur Konczak
  */
 public class Utils {
 
-	public static NodeClient getNodeClient() {
-		return (NodeClient) nodeBuilder().settings(Settings.builder()
-				.put("http.enabled", "false")
-				.put("path.data", "target/elasticsearchTestData")
-				.put("path.home", "src/test/resources/test-home-dir"))
-				.clusterName(UUID.randomUUID().toString()).local(true).node()
-				.client();
+	public static Client getNodeClient() throws NodeValidationException {
+		Collection plugins = Arrays.asList(Netty4Plugin.class);
+
+		String pathHome = "src/test/resources/test-home-dir";
+		String pathData = "target/elasticsearchTestData";
+		String clusterName = UUID.randomUUID().toString();
+		Node node = new NodeClientFactoryBean.TestNode(
+				Settings.builder()
+						.put("transport.type", "netty4")
+						.put("transport.type", "local")
+						.put("http.type", "netty4")
+						.put("path.home", pathHome)
+						.put("path.data", pathData)
+						.put("cluster.name", clusterName)
+						.put("node.max_local_storage_nodes", 100)
+						.put("script.inline", "true")
+						.build(), plugins);
+		node.start();
+//		String localNodeId = node.client().admin().cluster().prepareState().get().getState().getNodes().getLocalNodeId();
+//		String value = node.client().admin().cluster().prepareNodesInfo(localNodeId).get().getNodes().iterator().next().getHttp().address().publishAddress().toString();
+//		System.out.println(value);
+
+		return node.client();
 	}
 }

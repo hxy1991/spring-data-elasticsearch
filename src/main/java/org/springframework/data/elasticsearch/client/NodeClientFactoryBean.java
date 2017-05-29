@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2015-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,7 @@ package org.springframework.data.elasticsearch.client;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Collection;
-
 import org.apache.commons.lang.StringUtils;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
@@ -33,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
+import static java.util.Arrays.*;
 
 /**
  * NodeClientFactoryBean
@@ -82,35 +81,18 @@ public class NodeClientFactoryBean implements FactoryBean<Client>, InitializingB
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-//		nodeClient = (NodeClient) nodeBuilder().settings(Settings.builder().put(loadConfig())
-//				.put("http.enabled", String.valueOf(this.enableHttp))
-//				.put("path.home", this.pathHome)
-//				.put("path.data", this.pathData))
-//				.clusterName(this.clusterName).local(this.local).node()
-//				.client();
 
-		Collection plugins = Arrays.asList(Netty4Plugin.class);
-
-		Node node = new TestNode(
+		nodeClient = (NodeClient) new TestNode(
 				Settings.builder().put(loadConfig())
 						.put("transport.type", "netty4")
 						.put("transport.type", "local")
-						//.put("transport.tcp.port", "9300")
 						.put("http.type", "netty4")
-						//.put("http.enabled", "true")
 						.put("path.home", this.pathHome)
 						.put("path.data", this.pathData)
 						.put("cluster.name", this.clusterName)
 						.put("node.max_local_storage_nodes", 100)
 						.put("script.inline", "true")
-						.build(),plugins);
-		node.start();
-		String localNodeId = node.client().admin().cluster().prepareState().get().getState().getNodes().getLocalNodeId();
-		String value = node.client().admin().cluster().prepareNodesInfo(localNodeId).get().getNodes().iterator().next().getHttp().address().publishAddress().toString();
-		System.out.println(value);
-
-		nodeClient = (NodeClient) node.client();
-
+						.build(), asList(Netty4Plugin.class)).start().client();
 	}
 
 	private Settings loadConfig() throws IOException {

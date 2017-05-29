@@ -6,10 +6,6 @@ atlassian-ide-plugin.xml
 ## ignore any target dir
 target
 
-##ignore only top level data dir - local node data files for unit tests
-/data
-/elasticsearch-data
-
 ## Ignore project files created by Eclipse
 .settings
 .project

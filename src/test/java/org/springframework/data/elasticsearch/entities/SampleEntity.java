@@ -15,19 +15,21 @@
  */
 package org.springframework.data.elasticsearch.entities;
 
+import java.lang.Double;
+import java.lang.Long;
+import java.lang.Object;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
-import org.springframework.data.elasticsearch.annotations.FieldType;
 import org.springframework.data.elasticsearch.annotations.ScriptedField;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
+import static org.springframework.data.elasticsearch.annotations.FieldType.*;
 
 /**
  * @author Rizwan Idrees
@@ -44,9 +46,9 @@ public class SampleEntity {
 
 	@Id
 	private String id;
-	@Field(type = FieldType.text, store = true, fielddata = true)
+	@Field(type = text, store = true, fielddata = true)
 	private String type;
-	@Field(type = FieldType.text, store = true, fielddata = true)
+	@Field(type = text, store = true, fielddata = true)
 	private String message;
 	private int rate;
 	@ScriptedField

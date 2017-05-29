@@ -15,13 +15,9 @@
  */
 package org.springframework.data.elasticsearch.core.geo;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-
 import java.util.ArrayList;
 import java.util.List;
-
+import org.elasticsearch.common.geo.GeoHashUtils;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,8 +30,9 @@ import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilde
 import org.springframework.data.geo.Point;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import org.elasticsearch.common.geo.GeoHashUtils;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 
 /**
  * @author Rizwan Idrees
@@ -280,9 +277,6 @@ public class ElasticsearchTemplateGeoTests {
 	public void shouldFindLocationWithGeoHashPrefix() {
 
 		//given
-		//u1044k2bd6u - with precision = 4 -> u, u1, u10, u104
-		//u1044k2bd6u - with precision = 5 -> u, u1, u10, u104, u1044
-		//System.out.println(GeoHashUtils.stringEncode(0.1062d, 51.5171d));
 		loadAnnotationBaseEntities();
 		NativeSearchQueryBuilder location1 = new NativeSearchQueryBuilder().withFilter(QueryBuilders.geoBoundingBoxQuery("locationAsGeoHash").setCorners("u"));
 		NativeSearchQueryBuilder location2 = new NativeSearchQueryBuilder().withFilter(QueryBuilders.geoBoundingBoxQuery("locationAsGeoHash").setCorners("u1"));

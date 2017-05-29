@@ -15,16 +15,12 @@
  */
 package org.springframework.data.elasticsearch.repository.support;
 
-import static org.apache.commons.lang.RandomStringUtils.*;
-import static org.elasticsearch.index.query.QueryBuilders.*;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-
+import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.common.util.CollectionUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
@@ -39,9 +36,11 @@ import org.springframework.data.elasticsearch.entities.SampleEntity;
 import org.springframework.data.elasticsearch.repositories.sample.SampleElasticsearchRepository;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.common.util.CollectionUtils;
+import static org.apache.commons.lang.RandomStringUtils.*;
+import static org.elasticsearch.index.query.QueryBuilders.*;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
+import static org.springframework.data.domain.Sort.Direction.*;
 
 /**
  * @author Rizwan Idrees
@@ -510,8 +509,7 @@ public class SimpleElasticsearchRepositoryTests {
 		sampleEntity2.setMessage("hello");
 		repository.save(sampleEntity2);
 		// when
-		//TODO AKO : for sort use all the time keyword suffix
-		Iterable<SampleEntity> sampleEntities = repository.findAll(new Sort(new Sort.Order(Sort.Direction.ASC, "message")));
+		Iterable<SampleEntity> sampleEntities = repository.findAll(new Sort(new Order(ASC, "message")));
 		// then
 		assertThat(sampleEntities, is(notNullValue()));
 	}

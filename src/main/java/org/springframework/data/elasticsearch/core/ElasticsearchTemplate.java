@@ -15,21 +15,18 @@
  */
 package org.springframework.data.elasticsearch.core;
 
-import static org.apache.commons.lang.StringUtils.*;
-import static org.elasticsearch.action.search.SearchType.*;
-import static org.elasticsearch.client.Requests.*;
-import static org.elasticsearch.index.VersionType.*;
-import static org.elasticsearch.index.query.QueryBuilders.moreLikeThisQuery;
-import static org.elasticsearch.index.query.QueryBuilders.wrapperQuery;
-import static org.springframework.data.elasticsearch.core.MappingBuilder.*;
-import static org.springframework.util.CollectionUtils.isEmpty;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.*;
-import java.lang.reflect.Method;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
@@ -91,6 +88,12 @@ import org.springframework.data.elasticsearch.core.mapping.SimpleElasticsearchMa
 import org.springframework.data.elasticsearch.core.query.*;
 import org.springframework.data.util.CloseableIterator;
 import org.springframework.util.Assert;
+import static org.apache.commons.lang.StringUtils.*;
+import static org.elasticsearch.client.Requests.*;
+import static org.elasticsearch.index.VersionType.*;
+import static org.elasticsearch.index.query.QueryBuilders.*;
+import static org.springframework.data.elasticsearch.core.MappingBuilder.*;
+import static org.springframework.util.CollectionUtils.isEmpty;
 
 /**
  * ElasticsearchTemplate
@@ -403,11 +406,8 @@ public class ElasticsearchTemplate implements ElasticsearchOperations, Applicati
 				// Test if it remains hits
 				if (currentHits == null || !currentHits.hasNext()) {
 					// Do a new request
-//					SearchResponse response = getSearchResponse(client.prepareSearchScroll(scrollId)
-//							.setScroll(TimeValue.timeValueMillis(scrollTimeInMillis)).execute());
 					final ScrolledPage<T> scroll = (ScrolledPage<T>) continueScroll(scrollId, scrollTimeInMillis, clazz, mapper);
 					// Save hits and scroll id
-//					currentHits = mapper.mapResults(response, clazz, Pageable.unpaged()).iterator();
 					currentHits = scroll.iterator();
 					finished = !currentHits.hasNext();
 					scrollId = scroll.getScrollId();
@@ -594,18 +594,7 @@ public class ElasticsearchTemplate implements ElasticsearchOperations, Applicati
 		for (IndexQuery query : queries) {
 			bulkRequest.add(prepareIndex(query));
 		}
-		BulkResponse bulkResponse = bulkRequest.execute().actionGet();
-		if (bulkResponse.hasFailures()) {
-			Map<String, String> failedDocuments = new HashMap<>();
-			for (BulkItemResponse item : bulkResponse.getItems()) {
-				if (item.isFailed())
-					failedDocuments.put(item.getId(), item.getFailureMessage());
-			}
-			throw new ElasticsearchException(
-					"Bulk indexing has failures. Use ElasticsearchException.getFailedDocuments() for detailed messages ["
-							+ failedDocuments + "]",
-					failedDocuments);
-		}
+		checkForBulkUpdateFailure(bulkRequest.execute().actionGet());
 	}
 
 	@Override
@@ -614,7 +603,10 @@ public class ElasticsearchTemplate implements ElasticsearchOperations, Applicati
 		for (UpdateQuery query : queries) {
 			bulkRequest.add(prepareUpdate(query));
 		}
-		BulkResponse bulkResponse = bulkRequest.execute().actionGet();
+		checkForBulkUpdateFailure(bulkRequest.execute().actionGet());
+	}
+
+	private void checkForBulkUpdateFailure(BulkResponse bulkResponse) {
 		if (bulkResponse.hasFailures()) {
 			Map<String, String> failedDocuments = new HashMap<>();
 			for (BulkItemResponse item : bulkResponse.getItems()) {
@@ -734,12 +726,12 @@ public class ElasticsearchTemplate implements ElasticsearchOperations, Applicati
 		delete(deleteQuery, clazz);
 	}
 
-	private <T> SearchRequestBuilder prepareScroll(Query query, long scrollTimeInMillis, boolean noFields, Class<T> clazz) {
+	private <T> SearchRequestBuilder prepareScroll(Query query, long scrollTimeInMillis, Class<T> clazz) {
 		setPersistentEntityIndexAndType(query, clazz);
-		return prepareScroll(query, scrollTimeInMillis, noFields);
+		return prepareScroll(query, scrollTimeInMillis);
 	}
 
-	private SearchRequestBuilder prepareScroll(Query query, long scrollTimeInMillis, boolean noFields) {
+	private SearchRequestBuilder prepareScroll(Query query, long scrollTimeInMillis) {
 		SearchRequestBuilder requestBuilder = client.prepareSearch(toArray(query.getIndices()))
 				.setTypes(toArray(query.getTypes())).setScroll(TimeValue.timeValueMillis(scrollTimeInMillis)).setFrom(0);
 
@@ -750,10 +742,6 @@ public class ElasticsearchTemplate implements ElasticsearchOperations, Applicati
 		if (!isEmpty(query.getFields())) {
 			requestBuilder.setFetchSource(toArray(query.getFields()), null);
 		}
-//		TODO: AKO check if we can ignore this
-//		if (noFields) {
-//			requestBuilder.setNoFields();
-//		}
 		return requestBuilder;
 	}
 
@@ -792,22 +780,22 @@ public class ElasticsearchTemplate implements ElasticsearchOperations, Applicati
 	}
 
 	public <T> Page<T> startScroll(long scrollTimeInMillis, SearchQuery searchQuery, Class<T> clazz) {
-		SearchResponse response = doScroll(prepareScroll(searchQuery, scrollTimeInMillis,false, clazz), searchQuery);
+		SearchResponse response = doScroll(prepareScroll(searchQuery, scrollTimeInMillis, clazz), searchQuery);
 		return resultsMapper.mapResults(response, clazz, null);
 	}
 
 	public <T> Page<T> startScroll(long scrollTimeInMillis, CriteriaQuery criteriaQuery, Class<T> clazz) {
-		SearchResponse response = doScroll(prepareScroll(criteriaQuery, scrollTimeInMillis,false, clazz), criteriaQuery);
+		SearchResponse response = doScroll(prepareScroll(criteriaQuery, scrollTimeInMillis, clazz), criteriaQuery);
 		return resultsMapper.mapResults(response, clazz, null);
 	}
 
 	public <T> Page<T> startScroll(long scrollTimeInMillis, SearchQuery searchQuery, Class<T> clazz, SearchResultMapper mapper) {
-		SearchResponse response = doScroll(prepareScroll(searchQuery, scrollTimeInMillis,false, clazz), searchQuery);
+		SearchResponse response = doScroll(prepareScroll(searchQuery, scrollTimeInMillis, clazz), searchQuery);
 		return mapper.mapResults(response, clazz, null);
 	}
 
 	public <T> Page<T> startScroll(long scrollTimeInMillis, CriteriaQuery criteriaQuery, Class<T> clazz, SearchResultMapper mapper) {
-		SearchResponse response = doScroll(prepareScroll(criteriaQuery, scrollTimeInMillis,false, clazz), criteriaQuery);
+		SearchResponse response = doScroll(prepareScroll(criteriaQuery, scrollTimeInMillis, clazz), criteriaQuery);
 		return mapper.mapResults(response, clazz, null);
 	}
 

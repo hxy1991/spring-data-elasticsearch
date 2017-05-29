@@ -15,12 +15,19 @@
  */
 package org.springframework.data.elasticsearch.core;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
 import org.elasticsearch.action.get.MultiGetItemResponse;
 import org.elasticsearch.action.get.MultiGetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
@@ -30,7 +37,6 @@ import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,19 +49,19 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.core.aggregation.AggregatedPage;
 import org.springframework.data.elasticsearch.core.aggregation.impl.AggregatedPageImpl;
 import org.springframework.data.elasticsearch.core.query.*;
-import org.springframework.data.elasticsearch.entities.*;
+import org.springframework.data.elasticsearch.entities.HetroEntity1;
+import org.springframework.data.elasticsearch.entities.HetroEntity2;
+import org.springframework.data.elasticsearch.entities.SampleEntity;
+import org.springframework.data.elasticsearch.entities.SampleMappingEntity;
+import org.springframework.data.elasticsearch.entities.UseServerConfigurationEntity;
 import org.springframework.data.util.CloseableIterator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import java.util.*;
-
-import static org.apache.commons.lang.RandomStringUtils.randomNumeric;
+import static org.apache.commons.lang.RandomStringUtils.*;
 import static org.elasticsearch.index.query.QueryBuilders.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
-import static org.springframework.data.elasticsearch.core.ElasticsearchTemplate.*;
-import static org.springframework.data.elasticsearch.utils.IndexBuilder.buildIndex;
+import static org.springframework.data.elasticsearch.utils.IndexBuilder.*;
 
 /**
  * @author Rizwan Idrees
@@ -526,7 +532,6 @@ public class ElasticsearchTemplateTests {
 	}
 
 	@Test
-	@Ignore("By default, the search request will fail if there is no mapping associated with a field. The ignore_unmapped option allows to ignore fields that have no mapping and not sort by them")
 	public void shouldReturnSortedPageableResultsGivenStringQuery() {
 		// given
 		String documentId = randomNumeric(5);
@@ -543,7 +548,7 @@ public class ElasticsearchTemplateTests {
 		elasticsearchTemplate.refresh(SampleEntity.class);
 
 		StringQuery stringQuery = new StringQuery(matchAllQuery().toString(), new PageRequest(0, 10), new Sort(
-				new Sort.Order(Sort.Direction.ASC, "messsage")));
+				new Sort.Order(Sort.Direction.ASC, "message")));
 		// when
 		Page<SampleEntity> sampleEntities = elasticsearchTemplate.queryForPage(stringQuery, SampleEntity.class);
 		// then
